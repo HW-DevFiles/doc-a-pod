@@ -67,11 +67,13 @@ test('API protects provider settings and rejects unwanted requests', async () =>
     for (const icon of manifest.icons) assert.equal((await fetch(base + icon.src)).status,200);
   });
 });
-function statusFor(base, host, pathname = '/api/episodes') {
+function responseFor(base, host, pathname = '/api/episodes', method = 'GET') {
+  const headers = method === 'GET' ? {Host:host} : {Host:host, 'X-Docapod':'1', Origin:`http://${host}`};
   return new Promise((resolve, reject) => {
-    http.get(`${base}${pathname}`, {headers:{Host:host}}, response => { response.resume(); resolve(response.statusCode); }).on('error', reject);
+    http.request(`${base}${pathname}`, {method, headers}, response => { response.resume(); resolve(response); }).on('error', reject).end();
   });
 }
+const statusFor = async (...args) => (await responseFor(...args)).statusCode;
 test('API rejects unknown Host headers to block DNS rebinding', async () => {
   await withServer(async base => {
     for (const host of ['localhost:3000','127.0.0.1:3000','[::1]:3000','192.168.1.20:3000','100.101.102.103','mac-mini.local:3000','mac-mini.tail1234.ts.net','Papers.Example']) assert.equal(await statusFor(base, host), 200, host);
@@ -79,6 +81,12 @@ test('API rejects unknown Host headers to block DNS rebinding', async () => {
       assert.equal(await statusFor(base, host), 403, host);
       assert.equal(await statusFor(base, host, '/api/episodes/12345678-1234-1234-1234-123456789012/audio'), 403, host);
     }
+    const id = '12345678-1234-1234-1234-123456789012';
+    for (const [pathname, method] of [['/API/episodes'], ['/Api/settings'], [`/API/Episodes/${id}`], [`/aPi/episodes/${id}/AUDIO`], ['/API/episodes', 'POST'], [`/Api/episodes/${id}/retry`, 'POST'], [`/API/episodes/${id}`, 'DELETE']]) {
+      const response = await responseFor(base, 'attacker.example', pathname, method);
+      assert.equal(response.statusCode, 403, `${method || 'GET'} ${pathname}`); assert.equal(response.headers['cache-control'], 'no-store');
+    }
+    const allowed = await responseFor(base, 'localhost', '/API/Settings'); assert.equal(allowed.statusCode, 200); assert.equal(allowed.headers['cache-control'], 'no-store');
   }, {ALLOWED_HOSTS:' papers.example , other.example'});
 });
 test('restart marks interrupted generation as retryable', async () => {
