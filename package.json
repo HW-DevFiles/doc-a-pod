@@ -1,0 +1,22 @@
+{
+  "name": "doc-a-pod",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/server.js && node --check public/app.js && npm test"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.5.1",
+    "express": "^5.1.0",
+    "kokoro-js": "^1.2.1",
+    "multer": "^2.0.2",
+    "pdfjs-dist": "^5.4.394"
+  }
+}
