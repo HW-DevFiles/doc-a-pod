@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102f35"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="Turn research papers into a conversation you can take with you.">
+  <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-180.png"><link rel="stylesheet" href="/style.css">
+  <title>Doc-a-Pod · Your research, in conversation</title><script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/" aria-label="Doc-a-Pod home"><img src="/icon.svg" width="36" height="36" alt="">Doc-a-Pod</a><span class="local-label">Your personal research studio</span><button class="quiet" id="install-help">Use on iPhone</button></header>
+  <main>
+    <section class="intro"><p class="eyebrow">LESS SCROLLING. MORE UNDERSTANDING.</p><h1>Give your research<br>a voice.</h1><p>Meet Maya and Leo. One explains, one asks the questions.<br class="desktop-break"> Together, they turn your paper into a conversation.</p></section>
+    <div class="workspace">
+      <aside>
+        <section class="card upload-card" aria-labelledby="create-heading">
+          <div class="section-heading"><span class="mini-wave" aria-hidden="true">▂▆▃▇▂</span><h2 id="create-heading">Create an episode</h2></div>
+          <form id="upload-form">
+            <label class="dropzone" id="dropzone"><span class="upload-symbol" aria-hidden="true">＋</span><strong id="file-label">Choose a research paper</strong><span>PDF, text, or Markdown</span><input id="paper" type="file" name="paper" accept=".pdf,.txt,.md,.markdown" required aria-label="Choose a research paper"></label>
+            <p class="fine">Up to 20 MB · 100 source pages · Text-based PDFs</p>
+            <label class="field" for="script-provider">Script writer<select id="script-provider" name="scriptProvider"><option value="ollama">Ollama · local AI</option><option value="demo">Offline excerpt preview</option></select></label>
+            <label class="field" for="voice-provider">Voices<select id="voice-provider" name="voiceProvider"><option value="kokoro">Kokoro · free, local voices</option><option value="elevenlabs" disabled>ElevenLabs · setup required</option><option value="demo">Test tones · no speech</option></select></label>
+            <p id="provider-note" class="provider-note">Your paper and audio stay on this Mac. First use downloads Kokoro.</p>
+            <button class="primary" id="create-button" type="submit">Create podcast</button>
+            <p class="error" id="form-error" role="alert" hidden></p>
+          </form>
+          <div class="cap-note"><strong>A conversation, not a marathon.</strong><span>Every script stays within 10 pages.<br>One page = 500 words, including host labels.</span></div>
+        </section>
+        <div class="hosts"><div class="avatar maya">M</div><div><strong>Maya</strong><span>Your explainer</span></div><div class="avatar leo">L</div><div><strong>Leo</strong><span>Your curious co-host</span></div></div>
+      </aside>
+      <section class="library" aria-labelledby="library-heading">
+        <div class="library-header"><div><p class="eyebrow">MADE FOR YOUR LISTENING LIST</p><h2 id="library-heading">Your episodes <span id="episode-count">0</span></h2></div><button class="quiet" id="refresh">Refresh</button></div>
+        <p id="connection-error" class="error" role="status" hidden></p>
+        <div id="episode-list"></div>
+        <section id="empty-state" class="empty-state"><div class="record" aria-hidden="true"><div>▂▅▇▃▆▂</div></div><h3>A little reading.<br>A whole new way to listen.</h3><p>Upload your first paper to start your library.<br>Its audio and readable script will live here.</p><span class="topic-pill">The question</span><span class="topic-pill">The method</span><span class="topic-pill">The findings</span><span class="topic-pill">The limits</span></section>
+        <article id="episode-detail" class="card detail" hidden tabindex="-1"></article>
+      </section>
+    </div>
+    <footer>Built for curious minds. Generated summaries can miss details; always check the original research.</footer>
+  </main>
+  <dialog id="help-dialog"><h2>Take your research with you</h2><p>Keep this app running on the Mac. On the same Wi-Fi, open <strong>http://YOUR-MAC-IP:3000</strong> in iPhone Safari. The README explains how to find the address.</p><p>For an installable app with an offline shell, use the HTTPS Tailscale address described in the README. In Safari, tap <strong>Share → Add to Home Screen</strong>.</p><p>The Mac must stay awake to create episodes or stream audio. Download a WAV to Files for listening without the server.</p><form method="dialog"><button class="primary">Got it</button></form></dialog>
+</body>
+</html>
