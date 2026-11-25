@@ -75,3 +75,13 @@ test('offline previews retain complete thoughts within turn limits even with lon
   assert.ok(script.lines.every(line => wordCount(line.text) <= 100));
   assert.match(script.lines[1].text, /could not identify/);
 });
+test('a long-paper section summary that runs past its word target but within the character bound is accepted', async () => {
+  const summary = 'The trial enrolled 412 adults (95% CI 0.61–0.88, p = 0.003). '.repeat(33).trim();
+  assert.ok(wordCount(summary) > 300 && summary.length <= 3000);
+  const script = await writeScript(PAPER.repeat(80).slice(0, 31_000), 'ollama', configuration(), { fetchImpl: async (_url, request) => {
+    const body = JSON.parse(request.body);
+    return Response.json({response: body.format ? JSON.stringify(demoScript(PAPER)) : summary, done_reason: 'stop'});
+  }});
+  assert.match(script.warning, /section summaries/);
+  await assert.rejects(writeScript(PAPER.repeat(80).slice(0, 31_000), 'ollama', configuration(), { fetchImpl: async () => Response.json({response: 'x '.repeat(1501), done_reason: 'stop'}) }), /section summary exceeded/);
+});
