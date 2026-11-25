@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { demoScript, validateScript, writeScript, sourceChunks, wordCount, TOPICS } from '../src/script.js';
+import { demoScript, validateScript, writeScript, sourceChunks, wordCount, TOPICS, PROMPT_CHARS } from '../src/script.js';
 import { configuration } from '../src/config.js';
 import { PAPER } from './helpers.js';
 
@@ -44,6 +44,22 @@ test('long sources are fully covered by map summaries before dialogue generation
   assert.match(calls.at(-2).prompt, /THE FINAL LIMITATION/);
   assert.equal(calls.length, sourceChunks(text).length + 1);
   assert.match(script.warning, /section summaries/);
+});
+test('every Ollama prompt stays within the prompt bound, including notes from a maximum-size paper', async () => {
+  const paperOf = prompt => prompt.match(/<paper>\n([\s\S]*)\n<\/paper>/)[1];
+  const run = async text => {
+    const calls = [];
+    const script = await writeScript(text, 'ollama', configuration(), { fetchImpl: async (_url, request) => {
+      const body = JSON.parse(request.body); calls.push(body);
+      return Response.json({response: body.format ? JSON.stringify(demoScript(PAPER)) : 'Dense notes about a section. '.repeat(55).trim()});
+    }});
+    assert.match(script.warning, /section summaries/);
+    for (const call of calls) assert.ok(paperOf(call.prompt).length <= PROMPT_CHARS);
+    return calls.filter(call => !call.format).length;
+  };
+  assert.equal(await run(PAPER.repeat(80).slice(0, 30_000)), 2);
+  const largest = 'evidence '.repeat(55_556).slice(0, 500_000);
+  assert.ok(await run(largest) > sourceChunks(largest).length);
 });
 test('provider failures are explicit and never silently fall back', async () => {
   await assert.rejects(writeScript(PAPER, 'hosted', configuration()), /Unknown/);

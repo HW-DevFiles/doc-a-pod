@@ -4,14 +4,15 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { once } from 'node:events';
+import http from 'node:http';
 import { createApp } from '../src/app.js';
 import { configuration } from '../src/config.js';
 import { EpisodeStore } from '../src/store.js';
 import { PAPER, pdfFixture } from './helpers.js';
 
-async function withServer(fn) {
+async function withServer(fn, env = {}) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'docapod-app-'));
-  const runtime = await createApp(configuration({DATA_DIR:directory,SCRIPT_PROVIDER:'demo',VOICE_PROVIDER:'demo'}));
+  const runtime = await createApp(configuration({DATA_DIR:directory,SCRIPT_PROVIDER:'demo',VOICE_PROVIDER:'demo',...env}));
   const server = runtime.app.listen(0, '127.0.0.1'); await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}`;
   try { await fn(base, runtime); }
@@ -65,6 +66,20 @@ test('API protects provider settings and rejects unwanted requests', async () =>
     const manifest = await (await fetch(`${base}/manifest.webmanifest`)).json(); assert.equal(manifest.display,'standalone');
     for (const icon of manifest.icons) assert.equal((await fetch(base + icon.src)).status,200);
   });
+});
+function statusFor(base, host, pathname = '/api/episodes') {
+  return new Promise((resolve, reject) => {
+    http.get(`${base}${pathname}`, {headers:{Host:host}}, response => { response.resume(); resolve(response.statusCode); }).on('error', reject);
+  });
+}
+test('API rejects unknown Host headers to block DNS rebinding', async () => {
+  await withServer(async base => {
+    for (const host of ['localhost:3000','127.0.0.1:3000','[::1]:3000','192.168.1.20:3000','100.101.102.103','mac-mini.local:3000','mac-mini.tail1234.ts.net','Papers.Example']) assert.equal(await statusFor(base, host), 200, host);
+    for (const host of ['attacker.example','attacker.example:3000','127.0.0.1.attacker.example','evil-local','ts.net.attacker.example']) {
+      assert.equal(await statusFor(base, host), 403, host);
+      assert.equal(await statusFor(base, host, '/api/episodes/12345678-1234-1234-1234-123456789012/audio'), 403, host);
+    }
+  }, {ALLOWED_HOSTS:' papers.example , other.example'});
 });
 test('restart marks interrupted generation as retryable', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(),'docapod-restart-'));

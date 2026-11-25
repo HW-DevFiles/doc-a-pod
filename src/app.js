@@ -4,9 +4,17 @@ import { randomUUID } from 'node:crypto';
 import { writeFile, statfs } from 'node:fs/promises';
 import { Worker } from 'node:worker_threads';
 import path from 'node:path';
+import { isIP } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { LIMITS, UserError, elevenReady } from './config.js';
 import { EpisodeStore } from './store.js';
+
+function allowedHost(header, extra) {
+  let name;
+  try { name = new URL(`http://${header}`).hostname.toLowerCase(); } catch { return false; }
+  if (isIP(name.replace(/^\[|\]$/g, ''))) return true;
+  return name === 'localhost' || name.endsWith('.ts.net') || name.endsWith('.local') || extra.includes(name);
+}
 
 export async function createApp(config) {
   const app = express();
@@ -46,7 +54,10 @@ export async function createApp(config) {
   app.use((req, res, next) => {
     res.set({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
       'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" });
-    if (req.path.startsWith('/api/')) res.set('Cache-Control', 'no-store');
+    if (req.path.startsWith('/api/')) {
+      res.set('Cache-Control', 'no-store');
+      if (!req.get('Host') || !allowedHost(req.get('Host'), config.allowedHosts)) return next(new UserError('This host name is not allowed. Add it to ALLOWED_HOSTS.', 403));
+    }
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       if (req.get('X-Docapod') !== '1') return next(new UserError('Missing app request header.', 403));
       if (req.get('Origin')) {

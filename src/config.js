@@ -4,6 +4,7 @@ export const LIMITS = Object.freeze({ uploadBytes: 20 * 1024 * 1024, sourcePages
 export function configuration(env = process.env) {
   return {
     host: env.HOST || '0.0.0.0', port: Number(env.PORT || 3000),
+    allowedHosts: (env.ALLOWED_HOSTS || '').split(',').map(name => name.trim().toLowerCase()).filter(Boolean),
     dataDir: path.resolve(env.DATA_DIR || 'data'), cacheDir: path.resolve(env.MODEL_CACHE_DIR || '.cache'),
     scriptProvider: env.SCRIPT_PROVIDER || 'ollama', voiceProvider: env.VOICE_PROVIDER || 'kokoro',
     ollamaUrl: env.OLLAMA_URL || 'http://127.0.0.1:11434', ollamaModel: env.OLLAMA_MODEL || 'qwen3.5:9b',

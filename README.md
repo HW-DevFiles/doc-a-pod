@@ -57,6 +57,7 @@ Selections in the upload form apply to that episode. Environment variables set d
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `HOST`, `PORT` | `0.0.0.0`, `3000` | App listener |
+| `ALLOWED_HOSTS` | unset | Extra comma-separated host names the API accepts; localhost, IP addresses, `*.local`, and `*.ts.net` are always allowed |
 | `DATA_DIR` | `./data` | Local source files, JSON metadata, and WAVs |
 | `MODEL_CACHE_DIR` | `./.cache` | Downloaded ONNX model cache |
 | `SCRIPT_PROVIDER` | `ollama` | `ollama` or `demo` |
@@ -85,7 +86,7 @@ A future hosted script adapter belongs in `writeScript` in `src/script.js`: impl
 - **Dialogue: at most 10 pages.** A page is 500 whitespace-separated words, **including host labels**; the hard cap is 5,000 words. Page count rounds up. The model targets a shorter 600–1,000-word conversation, not the maximum.
 - **Source: one file, at most 20 MB, 100 PDF pages, and 500,000 extracted characters.** UTF-8 text/Markdown uses the same size/character limits. Invalid, encrypted, image-only, or almost-empty PDFs produce clear errors. OCR is not included.
 - Scripts alternate named hosts, cover question/method/findings/limits, and require complete sentences. Turns are bounded to 100 words. Overlong or invalid model output is rewritten once, then fails visibly rather than being truncated.
-- Sources above 36,000 characters are processed in full through sequential section summaries before the final conversation. This takes longer and can lose nuance; a notice appears with the script. Scientific equations, tables, references, and multi-column PDF reading order can extract imperfectly. Compare the script to the original before relying on it.
+- Each model prompt carries at most 24,000 source characters, leaving context room for instructions and the script. Longer sources are processed in full through sequential section summaries (summarized again if the notes are still too long) before the final conversation. This takes longer and can lose nuance; a notice appears with the script. Scientific equations, tables, references, and multi-column PDF reading order can extract imperfectly. Compare the script to the original before relying on it.
 - Kokoro receives small word-boundary chunks to avoid its tokenizer's input truncation. Each script line has a timestamp for “Listen from here.” Recordings have a one-hour safety limit.
 - English dialogue and English voices are the v1 target. Generated summaries can be wrong. Research documents are treated as source data in the prompts, not executable instructions.
 
@@ -93,7 +94,7 @@ A future hosted script adapter belongs in `writeScript` in `src/script.js`: impl
 
 `data/<episode-id>/` holds the source, atomically written JSON metadata, and one WAV. It is a single-process local store; do not run two app processes against the same `DATA_DIR`. Source files are not served as static files. A failed episode retains its source for retry and may retain a completed script. Retry starts generation again; retrying ElevenLabs may incur additional charges. Delete removes the entire episode directory.
 
-There are intentionally no accounts. Anyone who can reach this app's address can read or delete episodes, upload papers, or use configured providers. Use a trusted LAN or restricted Tailscale network; do not expose the port publicly. Cross-origin mutation requests are rejected, but this is not authentication. There is no analytics. Source text stays local with the default providers; Kokoro's initial download contacts Hugging Face without sending paper text. Back up `DATA_DIR` if you want to preserve the library.
+There are intentionally no accounts. Anyone who can reach this app's address can read or delete episodes, upload papers, or use configured providers. Use a trusted LAN or restricted Tailscale network; do not expose the port publicly. Cross-origin mutation requests and API requests for unrecognized host names (a DNS-rebinding defense) are rejected, but this is not authentication. There is no analytics. Source text stays local with the default providers; Kokoro's initial download contacts Hugging Face without sending paper text. Back up `DATA_DIR` if you want to preserve the library.
 
 ## Voice licenses
 
